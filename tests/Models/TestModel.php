@@ -4,18 +4,34 @@ namespace Plank\BeforeAndAfterModelEvents\Tests\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Plank\BeforeAndAfterModelEvents\Concerns\AddBeforeAndAfterEvents;
+use Plank\BeforeAndAfterModelEvents\Concerns\BeforeAndAfterEvents;
 
+/**
+ * @property string $name;
+ * @property ?string $email;
+ * @property ?string $status;
+ */
 class TestModel extends Model
 {
-    use AddBeforeAndAfterEvents, SoftDeletes;
+    use BeforeAndAfterEvents, SoftDeletes;
 
-    protected $fillable = ['name', 'email'];
+    protected $fillable = ['name', 'email', 'status'];
 
     protected $table = 'test_models';
 
-    // Public wrapper for testing fireModelEvent
-    public function fireEvent($event, $halt = true)
+    public function publish()
+    {
+        $this->status = 'published';
+        $this->fireModelEvent('publishing');
+        $this->save();
+    }
+
+    public function customAction()
+    {
+        $this->fireModelEvent('customAction');
+    }
+
+    public function firePublicModelEvent($event, $halt = true)
     {
         return $this->fireModelEvent($event, $halt);
     }

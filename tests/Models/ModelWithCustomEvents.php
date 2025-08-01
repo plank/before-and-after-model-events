@@ -3,62 +3,41 @@
 namespace Plank\BeforeAndAfterModelEvents\Tests\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Plank\BeforeAndAfterModelEvents\Concerns\AddBeforeAndAfterEvents;
+use Plank\BeforeAndAfterModelEvents\Concerns\BeforeAndAfterEvents;
 
+/**
+ * @property string $name;
+ * @property ?string $email;
+ * @property ?string $status;
+ */
 class ModelWithCustomEvents extends Model
 {
-    use AddBeforeAndAfterEvents;
-
-    protected $fillable = ['name', 'status'];
+    use BeforeAndAfterEvents;
 
     protected $table = 'test_models';
 
-    // Define custom events that should get before/after wrapping
-    protected $beforeAndAfterEvents = ['publishing', 'published', 'archiving'];
+    protected $fillable = ['name', 'email', 'status'];
 
-    public static $eventLog = [];
-
-    protected static function boot()
+    public function activate()
     {
-        parent::boot();
+        if ($this->fireModelEvent('activating') === false) {
+            return false;
+        }
 
-        // Define the custom events that other packages might fire
-        static::publishing(function ($model) {
-            static::$eventLog[] = 'publishing';
-        });
-
-        static::published(function ($model) {
-            static::$eventLog[] = 'published';
-        });
-
-        static::archiving(function ($model) {
-            static::$eventLog[] = 'archiving';
-        });
-    }
-
-    public static function clearEventLog()
-    {
-        static::$eventLog = [];
-    }
-
-    // Method to simulate a package firing custom events
-    public function publish()
-    {
-        $this->fireModelEvent('publishing');
-        $this->status = 'published';
+        $this->status = 'active';
         $this->save();
-        $this->fireModelEvent('published');
+
+        return true;
     }
 
-    public function archive()
+    public function deactivate()
     {
-        $this->fireModelEvent('archiving');
-        $this->status = 'archived';
+        $this->status = 'inactive';
+        $this->fireModelEvent('deactivating');
         $this->save();
     }
 
-    // Public wrapper for testing fireModelEvent
-    public function fireEvent($event, $halt = true)
+    public function firePublicModelEvent($event, $halt = true)
     {
         return $this->fireModelEvent($event, $halt);
     }
