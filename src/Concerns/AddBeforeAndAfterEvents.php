@@ -11,28 +11,33 @@ trait AddBeforeAndAfterEvents
 {
     public function initializeAddBeforeAndAfterEvents()
     {
-        $this->addObservableEvents([
-            'beforeCreating',
-            'afterCreating',
-            'beforeCreated',
-            'afterCreated',
-            'beforeSaving',
-            'afterSaving',
-            'beforeSaved',
-            'afterSaved',
-            'beforeUpdating',
-            'afterUpdating',
-            'beforeUpdated',
-            'afterUpdated',
-            'beforeDeleting',
-            'afterDeleting',
-            'beforeDeleted',
-            'afterDeleted',
-            'beforeRestoring',
-            'afterRestoring',
-            'beforeRestored',
-            'afterRestored',
-        ]);
+        $defaultEvents = [
+            'creating',
+            'created',
+            'saving',
+            'saved',
+            'updating',
+            'updated',
+            'deleting',
+            'deleted',
+            'restoring',
+            'restored',
+        ];
+
+        // Get custom events from model property
+        $customEvents = $this->beforeAndAfterEvents ?? [];
+
+        // Combine default and custom events
+        $allEvents = array_merge($defaultEvents, $customEvents);
+
+        // Generate before/after events for all
+        $beforeAndAfterEvents = [];
+        foreach ($allEvents as $event) {
+            $beforeAndAfterEvents[] = 'before'.ucfirst($event);
+            $beforeAndAfterEvents[] = 'after'.ucfirst($event);
+        }
+
+        $this->addObservableEvents($beforeAndAfterEvents);
     }
 
     protected function fireModelEvent($event, $halt = true)
@@ -59,6 +64,37 @@ trait AddBeforeAndAfterEvents
         return $result;
     }
 
+    public static function __callStatic($method, $parameters)
+    {
+        // Check if this is a before/after event method
+        if (preg_match('/^(before|after)([A-Z].*)$/', $method, $matches)) {
+            $eventType = $matches[1]; // 'before' or 'after'
+            $eventName = $matches[2]; // e.g., 'Creating', 'Publishing'
+            $fullEventName = $eventType.$eventName;
+
+            // Validate that we have a callback parameter
+            if (count($parameters) !== 1 || ! is_callable($parameters[0])) {
+                throw new \InvalidArgumentException("Method {$method} expects a single callable parameter.");
+            }
+
+            static::registerModelEvent($fullEventName, $parameters[0]);
+
+            return;
+        }
+
+        // Check if this is a standard event registration method that should be supported
+        if (count($parameters) === 1 && is_callable($parameters[0])) {
+            // This might be a custom event like 'publishing', 'published', etc.
+            static::registerModelEvent($method, $parameters[0]);
+
+            return;
+        }
+
+        // Fall back to parent if method doesn't match our patterns
+        return parent::__callStatic($method, $parameters);
+    }
+
+    // Keep the most common ones as explicit methods for better IDE support
     public static function beforeCreating(callable $callback): void
     {
         static::registerModelEvent('beforeCreating', $callback);

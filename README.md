@@ -86,6 +86,48 @@ The trait adds before/after events for all standard Laravel model events:
 | `restoring` | `beforeRestoring` | `afterRestoring` |
 | `restored` | `beforeRestored` | `afterRestored` |
 
+### Custom Events Support
+
+You can also wrap **any custom events** that your model might fire (for example, from other packages) by defining them in the `$beforeAndAfterEvents` property:
+
+```php
+class Post extends Model
+{
+    use AddBeforeAndAfterEvents;
+    
+    // Define custom events to wrap with before/after events
+    protected $beforeAndAfterEvents = ['publishing', 'published', 'archiving'];
+}
+```
+
+This automatically creates before/after events for your custom events:
+
+```php
+// Now you can listen to these events:
+Post::beforePublishing(function ($post) {
+    // Runs before 'publishing' event
+});
+
+Post::afterPublished(function ($post) {
+    // Runs after 'published' event
+});
+
+Post::beforeArchiving(function ($post) {
+    // Runs before 'archiving' event
+});
+```
+
+**Example with a publishing package:**
+```php
+// Some other package fires these custom events
+$post->fireModelEvent('publishing');
+$post->fireModelEvent('published');
+
+// Your before/after events will wrap them:
+// beforePublishing → publishing → afterPublishing
+// beforePublished → published → afterPublished
+```
+
 ### Event Order Example
 
 When you create a model, events fire in this specific order:
@@ -260,7 +302,25 @@ User::afterCreating(fn() => logger('Trait after'));
 // Order: beforeCreating → Observer creating → afterCreating
 ```
 
-### 6. Testing Considerations
+### 6. Custom Events Integration
+
+Custom events work seamlessly with the trait by defining them in the `$beforeAndAfterEvents` property:
+
+```php
+class Post extends Model
+{
+    use AddBeforeAndAfterEvents;
+    
+    // These custom events will get before/after wrappers
+    protected $beforeAndAfterEvents = ['publishing', 'published'];
+}
+
+// Usage - works exactly like standard events
+Post::beforePublishing(fn($post) => logger('Before publishing'));
+Post::afterPublished(fn($post) => Cache::forget('posts'));
+```
+
+### 7. Testing Considerations
 
 When testing, you can verify event firing:
 
@@ -276,6 +336,20 @@ public function it_fires_before_and_after_events()
     User::create(['name' => 'Test']);
     
     $this->assertEquals(['before', 'after'], $events);
+}
+
+/** @test */
+public function it_fires_custom_events()
+{
+    $events = [];
+    
+    Post::beforePublishing(fn() => $events[] = 'beforePublishing');
+    Post::afterPublishing(fn() => $events[] = 'afterPublishing');
+    
+    $post = Post::create(['title' => 'Test']);
+    $post->fireModelEvent('publishing'); // Or however your package fires it
+    
+    $this->assertEquals(['beforePublishing', 'afterPublishing'], $events);
 }
 ```
 
@@ -316,6 +390,29 @@ Order::beforeCreating(function ($order) {
 Order::afterCreated(function ($order) {
     $order->sendConfirmationEmail();
     $order->updateInventory();
+});
+```
+
+### 4. Third-Party Package Integration
+```php
+class Post extends Model
+{
+    use AddBeforeAndAfterEvents;
+    
+    // Wrap events from spatie/laravel-model-status or similar packages
+    protected $beforeAndAfterEvents = ['statusChanging', 'statusChanged'];
+}
+
+// Now you can hook into package events
+Post::beforeStatusChanging(function ($post) {
+    // Log the status change attempt
+    Log::info("Attempting to change status for post {$post->id}");
+});
+
+Post::afterStatusChanged(function ($post) {
+    // Clear caches, send notifications, etc.
+    Cache::forget("post.{$post->id}");
+    $post->owner->notify(new PostStatusChanged($post));
 });
 ```
 
