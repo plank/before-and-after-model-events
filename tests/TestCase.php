@@ -4,7 +4,6 @@ namespace Plank\BeforeAndAfterModelEvents\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Plank\BeforeAndAfterModelEvents\BeforeAndAfterModelEventsServiceProvider;
 
 class TestCase extends Orchestra
 {
@@ -19,19 +18,20 @@ class TestCase extends Orchestra
 
     protected function getPackageProviders($app)
     {
-        return [
-            BeforeAndAfterModelEventsServiceProvider::class,
-        ];
+        return [];
     }
 
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
+        config()->set('database.connections.testing', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+        ]);
 
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/database/migrations') as $migration) {
+        foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__.'/database/migrations') as $migration) {
             (include $migration->getRealPath())->up();
-         }
-         */
+        }
     }
 }
