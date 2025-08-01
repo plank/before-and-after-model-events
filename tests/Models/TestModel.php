@@ -13,4 +13,10 @@ class TestModel extends Model
     protected $fillable = ['name', 'email'];
 
     protected $table = 'test_models';
+
+    // Public wrapper for testing fireModelEvent
+    public function fireEvent($event, $halt = true)
+    {
+        return $this->fireModelEvent($event, $halt);
+    }
 }

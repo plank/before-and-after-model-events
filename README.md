@@ -43,29 +43,52 @@ class User extends Model
 
 ### Basic Event Listeners
 
-You can now register listeners for any before/after event:
+#### Recommended API (Static Analysis Friendly)
+
+The recommended way to register event listeners uses explicit methods that work perfectly with static analysis tools:
 
 ```php
 use App\Models\User;
 
-// Listen to before events
-User::beforeCreating(function ($user) {
+// Listen to before/after events using the new API
+User::beforeEvent('creating', function ($user) {
     // Runs before the 'creating' event
     $user->slug = Str::slug($user->name);
 });
 
-User::afterCreated(function ($user) {
+User::afterEvent('created', function ($user) {
     // Runs after the 'created' event
     Mail::to($user)->send(new WelcomeEmail($user));
 });
 
 // Works with all model events
-User::beforeUpdating(function ($user) {
+User::beforeEvent('updating', function ($user) {
     $user->updated_by = auth()->id();
 });
 
-User::afterDeleted(function ($user) {
+User::afterEvent('deleted', function ($user) {
     Log::info("User {$user->name} was deleted");
+});
+
+// Works with ANY custom event too!
+User::beforeEvent('publishing', function ($user) {
+    // Runs before custom 'publishing' event
+    $user->status = 'publishing';
+});
+```
+
+#### Alternative API (Magic Methods)
+
+You can also use magic methods for common events (though the above is recommended):
+
+```php
+// These work but won't be recognized by static analysis
+User::beforeCreating(function ($user) {
+    $user->slug = Str::slug($user->name);
+});
+
+User::afterCreated(function ($user) {
+    Mail::to($user)->send(new WelcomeEmail($user));
 });
 ```
 
@@ -88,44 +111,56 @@ The trait adds before/after events for all standard Laravel model events:
 
 ### Custom Events Support
 
-You can also wrap **any custom events** that your model might fire (for example, from other packages) by defining them in the `$beforeAndAfterEvents` property:
+#### Dynamic Custom Events (Recommended)
+
+The easiest way to handle custom events is using the `beforeEvent()` and `afterEvent()` methods. No configuration needed!
+
+```php
+// Works with ANY event name - no setup required
+Post::beforeEvent('publishing', function ($post) {
+    // Runs before 'publishing' event
+    logger("About to publish: {$post->title}");
+});
+
+Post::afterEvent('published', function ($post) {
+    // Runs after 'published' event
+    Cache::forget("post.{$post->id}");
+});
+
+Post::beforeEvent('archiving', function ($post) {
+    // Works with any custom event name
+    $post->archived_by = auth()->id();
+});
+```
+
+**Example with a third-party package:**
+```php
+// Some package fires custom events like this:
+$post->fireModelEvent('publishing');
+$post->fireModelEvent('published');
+
+// Your before/after events automatically wrap them:
+// beforePublishing → publishing → afterPublishing  
+// beforePublished → published → afterPublished
+```
+
+#### Alternative: Property-Based Configuration
+
+You can also pre-define custom events using the `$beforeAndAfterEvents` property:
 
 ```php
 class Post extends Model
 {
     use AddBeforeAndAfterEvents;
     
-    // Define custom events to wrap with before/after events
+    // Pre-define custom events (optional)
     protected $beforeAndAfterEvents = ['publishing', 'published', 'archiving'];
 }
-```
 
-This automatically creates before/after events for your custom events:
-
-```php
-// Now you can listen to these events:
-Post::beforePublishing(function ($post) {
-    // Runs before 'publishing' event
-});
-
-Post::afterPublished(function ($post) {
-    // Runs after 'published' event
-});
-
-Post::beforeArchiving(function ($post) {
-    // Runs before 'archiving' event
-});
-```
-
-**Example with a publishing package:**
-```php
-// Some other package fires these custom events
-$post->fireModelEvent('publishing');
-$post->fireModelEvent('published');
-
-// Your before/after events will wrap them:
-// beforePublishing → publishing → afterPublishing
-// beforePublished → published → afterPublished
+// Then use either API:
+Post::beforeEvent('publishing', fn($post) => logger('Publishing'));
+// OR
+Post::beforePublishing(fn($post) => logger('Publishing')); // Magic method
 ```
 
 ### Event Order Example
@@ -155,13 +190,13 @@ User::create(['name' => 'John Doe']);
 You can prevent model operations by returning `false` from any **before** event:
 
 ```php
-User::beforeCreating(function ($user) {
+User::beforeEvent('creating', function ($user) {
     if ($user->email === 'blocked@example.com') {
         return false; // Prevents the creation
     }
 });
 
-User::beforeDeleting(function ($user) {
+User::beforeEvent('deleting', function ($user) {
     if ($user->role === 'admin') {
         return false; // Prevents the deletion
     }
@@ -357,11 +392,11 @@ public function it_fires_custom_events()
 
 ### 1. Audit Logging
 ```php
-User::beforeUpdating(function ($user) {
+User::beforeEvent('updating', function ($user) {
     $user->previous_values = $user->getOriginal();
 });
 
-User::afterUpdated(function ($user) {
+User::afterEvent('updated', function ($user) {
     AuditLog::create([
         'model' => get_class($user),
         'model_id' => $user->id,
@@ -373,7 +408,7 @@ User::afterUpdated(function ($user) {
 
 ### 2. Cache Invalidation
 ```php
-Post::afterSaved(function ($post) {
+Post::afterEvent('saved', function ($post) {
     Cache::forget("post.{$post->id}");
     Cache::forget('posts.latest');
 });
@@ -381,13 +416,13 @@ Post::afterSaved(function ($post) {
 
 ### 3. Validation and Business Logic
 ```php
-Order::beforeCreating(function ($order) {
+Order::beforeEvent('creating', function ($order) {
     if (!$order->isValid()) {
         throw new InvalidOrderException();
     }
 });
 
-Order::afterCreated(function ($order) {
+Order::afterEvent('created', function ($order) {
     $order->sendConfirmationEmail();
     $order->updateInventory();
 });
@@ -398,22 +433,23 @@ Order::afterCreated(function ($order) {
 class Post extends Model
 {
     use AddBeforeAndAfterEvents;
-    
-    // Wrap events from spatie/laravel-model-status or similar packages
-    protected $beforeAndAfterEvents = ['statusChanging', 'statusChanged'];
 }
 
-// Now you can hook into package events
-Post::beforeStatusChanging(function ($post) {
-    // Log the status change attempt
+// Hook into any package events dynamically - no configuration needed!
+Post::beforeEvent('statusChanging', function ($post) {
+    // Log the status change attempt  
     Log::info("Attempting to change status for post {$post->id}");
 });
 
-Post::afterStatusChanged(function ($post) {
+Post::afterEvent('statusChanged', function ($post) {
     // Clear caches, send notifications, etc.
     Cache::forget("post.{$post->id}");
     $post->owner->notify(new PostStatusChanged($post));
 });
+
+// Works with any event from any package
+Post::beforeEvent('publishing', fn($post) => logger('Publishing started'));
+Post::afterEvent('approvalRequested', fn($post) => Mail::send(...));
 ```
 
 ## Testing

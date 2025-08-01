@@ -9,6 +9,11 @@ use Illuminate\Database\Eloquent\Model;
  */
 trait AddBeforeAndAfterEvents
 {
+    /**
+     * Static registry of custom events that have been registered
+     */
+    protected static $dynamicBeforeAfterEvents = [];
+
     public function initializeAddBeforeAndAfterEvents()
     {
         $defaultEvents = [
@@ -24,20 +29,24 @@ trait AddBeforeAndAfterEvents
             'restored',
         ];
 
-        // Get custom events from model property
+        // Get custom events from model property (for backward compatibility)
         $customEvents = $this->beforeAndAfterEvents ?? [];
 
-        // Combine default and custom events
-        $allEvents = array_merge($defaultEvents, $customEvents);
+        // Get dynamically registered events for this model class
+        $dynamicEvents = static::$dynamicBeforeAfterEvents[static::class] ?? [];
 
-        // Generate before/after events for all
-        $beforeAndAfterEvents = [];
+        // Combine all events
+        $allEvents = array_merge($defaultEvents, $customEvents, $dynamicEvents);
+
+        // Generate before/after events for all, plus the base events
+        $eventsToAdd = [];
         foreach ($allEvents as $event) {
-            $beforeAndAfterEvents[] = 'before'.ucfirst($event);
-            $beforeAndAfterEvents[] = 'after'.ucfirst($event);
+            $eventsToAdd[] = $event; // The base event itself
+            $eventsToAdd[] = 'before'.ucfirst($event);
+            $eventsToAdd[] = 'after'.ucfirst($event);
         }
 
-        $this->addObservableEvents($beforeAndAfterEvents);
+        $this->addObservableEvents($eventsToAdd);
     }
 
     protected function fireModelEvent($event, $halt = true)
@@ -92,6 +101,50 @@ trait AddBeforeAndAfterEvents
 
         // Fall back to parent if method doesn't match our patterns
         return parent::__callStatic($method, $parameters);
+    }
+
+    /**
+     * Register a before event listener for any event
+     *
+     * @param  string  $event  The event name (e.g., 'creating', 'publishing', 'customEvent')
+     * @param  callable  $callback  The callback to execute
+     */
+    public static function beforeEvent(string $event, callable $callback): void
+    {
+        // Register the base event for dynamic registration
+        static::registerDynamicEvent($event);
+
+        $eventName = 'before'.ucfirst($event);
+        static::registerModelEvent($eventName, $callback);
+    }
+
+    /**
+     * Register an after event listener for any event
+     *
+     * @param  string  $event  The event name (e.g., 'creating', 'publishing', 'customEvent')
+     * @param  callable  $callback  The callback to execute
+     */
+    public static function afterEvent(string $event, callable $callback): void
+    {
+        // Register the base event for dynamic registration
+        static::registerDynamicEvent($event);
+
+        $eventName = 'after'.ucfirst($event);
+        static::registerModelEvent($eventName, $callback);
+    }
+
+    /**
+     * Register a dynamic event for this model class
+     */
+    protected static function registerDynamicEvent(string $event): void
+    {
+        if (! isset(static::$dynamicBeforeAfterEvents[static::class])) {
+            static::$dynamicBeforeAfterEvents[static::class] = [];
+        }
+
+        if (! in_array($event, static::$dynamicBeforeAfterEvents[static::class])) {
+            static::$dynamicBeforeAfterEvents[static::class][] = $event;
+        }
     }
 
     // Keep the most common ones as explicit methods for better IDE support
