@@ -13,139 +13,50 @@ trait AddBeforeAndAfterEvents
     {
         $this->addObservableEvents([
             'beforeCreating',
-            'beforeCreated',
             'afterCreating',
+            'beforeCreated',
             'afterCreated',
             'beforeSaving',
-            'beforeSaved',
             'afterSaving',
+            'beforeSaved',
             'afterSaved',
             'beforeUpdating',
-            'beforeUpdated',
             'afterUpdating',
+            'beforeUpdated',
             'afterUpdated',
             'beforeDeleting',
-            'beforeDeleted',
             'afterDeleting',
+            'beforeDeleted',
             'afterDeleted',
             'beforeRestoring',
-            'beforeRestored',
             'afterRestoring',
+            'beforeRestored',
             'afterRestored',
         ]);
     }
 
     protected function fireModelEvent($event, $halt = true)
     {
-        if (method_exists($this, $fireBefore = 'fireBefore'.ucfirst($event))) {
-            $this->$fireBefore();
+        // Fire before event
+        $beforeEvent = 'before'.ucfirst($event);
+        if (in_array($beforeEvent, $this->getObservableEvents())) {
+            if (parent::fireModelEvent($beforeEvent, $halt) === false) {
+                return false;
+            }
         }
 
-        parent::fireModelEvent($event, $halt);
+        // Fire the original event
+        $result = parent::fireModelEvent($event, $halt);
 
-        if (method_exists($this, $fireAfter = 'fireAfter'.ucfirst($event))) {
-            $this->$fireAfter();
+        // Fire after event (only if original event didn't return false)
+        if ($result !== false) {
+            $afterEvent = 'after'.ucfirst($event);
+            if (in_array($afterEvent, $this->getObservableEvents())) {
+                parent::fireModelEvent($afterEvent, false);
+            }
         }
-    }
 
-    public function fireBeforeCreating(): void
-    {
-        $this->fireModelEvent('beforeCreating');
-    }
-
-    public function fireBeforeCreated(): void
-    {
-        $this->fireModelEvent('beforeCreated');
-    }
-
-    public function fireAfterCreating(): void
-    {
-        $this->fireModelEvent('afterCreating');
-    }
-
-    public function fireAfterCreated(): void
-    {
-        $this->fireModelEvent('afterCreated');
-    }
-
-    public function fireBeforeSaving(): void
-    {
-        $this->fireModelEvent('beforeSaving');
-    }
-
-    public function fireBeforeSaved(): void
-    {
-        $this->fireModelEvent('beforeSaved');
-    }
-
-    public function fireAfterSaving(): void
-    {
-        $this->fireModelEvent('afterSaving');
-    }
-
-    public function fireAfterSaved(): void
-    {
-        $this->fireModelEvent('afterSaved');
-    }
-
-    public function fireBeforeUpdating(): void
-    {
-        $this->fireModelEvent('beforeUpdating');
-    }
-
-    public function fireBeforeUpdated(): void
-    {
-        $this->fireModelEvent('beforeUpdated');
-    }
-
-    public function fireAfterUpdating(): void
-    {
-        $this->fireModelEvent('afterUpdating');
-    }
-
-    public function fireAfterUpdated(): void
-    {
-        $this->fireModelEvent('afterUpdated');
-    }
-
-    public function fireBeforeDeleting(): void
-    {
-        $this->fireModelEvent('beforeDeleting');
-    }
-
-    public function fireBeforeDeleted(): void
-    {
-        $this->fireModelEvent('beforeDeleted');
-    }
-
-    public function fireAfterDeleting(): void
-    {
-        $this->fireModelEvent('afterDeleting');
-    }
-
-    public function fireAfterDeleted(): void
-    {
-        $this->fireModelEvent('afterDeleted');
-    }
-
-    public function fireBeforeRestoring(): void
-    {
-        $this->fireModelEvent('beforeRestoring');
-    }
-
-    public function fireBeforeRestored(): void
-    {
-        $this->fireModelEvent('beforeRestored');
-    }
-
-    public function fireAfterRestoring(): void
-    {
-        $this->fireModelEvent('afterRestoring');
-    }
-
-    public function fireAfterRestored(): void
-    {
-        $this->fireModelEvent('afterRestored');
+        return $result;
     }
 
     public static function beforeCreating(callable $callback): void
@@ -153,14 +64,14 @@ trait AddBeforeAndAfterEvents
         static::registerModelEvent('beforeCreating', $callback);
     }
 
-    public static function beforeCreated(callable $callback): void
-    {
-        static::registerModelEvent('beforeCreated', $callback);
-    }
-
     public static function afterCreating(callable $callback): void
     {
         static::registerModelEvent('afterCreating', $callback);
+    }
+
+    public static function beforeCreated(callable $callback): void
+    {
+        static::registerModelEvent('beforeCreated', $callback);
     }
 
     public static function afterCreated(callable $callback): void
@@ -173,14 +84,14 @@ trait AddBeforeAndAfterEvents
         static::registerModelEvent('beforeSaving', $callback);
     }
 
-    public static function beforeSaved(callable $callback): void
-    {
-        static::registerModelEvent('beforeSaved', $callback);
-    }
-
     public static function afterSaving(callable $callback): void
     {
         static::registerModelEvent('afterSaving', $callback);
+    }
+
+    public static function beforeSaved(callable $callback): void
+    {
+        static::registerModelEvent('beforeSaved', $callback);
     }
 
     public static function afterSaved(callable $callback): void
@@ -193,14 +104,14 @@ trait AddBeforeAndAfterEvents
         static::registerModelEvent('beforeUpdating', $callback);
     }
 
-    public static function beforeUpdated(callable $callback): void
-    {
-        static::registerModelEvent('beforeUpdated', $callback);
-    }
-
     public static function afterUpdating(callable $callback): void
     {
         static::registerModelEvent('afterUpdating', $callback);
+    }
+
+    public static function beforeUpdated(callable $callback): void
+    {
+        static::registerModelEvent('beforeUpdated', $callback);
     }
 
     public static function afterUpdated(callable $callback): void
@@ -213,14 +124,14 @@ trait AddBeforeAndAfterEvents
         static::registerModelEvent('beforeDeleting', $callback);
     }
 
-    public static function beforeDeleted(callable $callback): void
-    {
-        static::registerModelEvent('beforeDeleted', $callback);
-    }
-
     public static function afterDeleting(callable $callback): void
     {
         static::registerModelEvent('afterDeleting', $callback);
+    }
+
+    public static function beforeDeleted(callable $callback): void
+    {
+        static::registerModelEvent('beforeDeleted', $callback);
     }
 
     public static function afterDeleted(callable $callback): void
@@ -233,14 +144,14 @@ trait AddBeforeAndAfterEvents
         static::registerModelEvent('beforeRestoring', $callback);
     }
 
-    public static function beforeRestored(callable $callback): void
-    {
-        static::registerModelEvent('beforeRestored', $callback);
-    }
-
     public static function afterRestoring(callable $callback): void
     {
         static::registerModelEvent('afterRestoring', $callback);
+    }
+
+    public static function beforeRestored(callable $callback): void
+    {
+        static::registerModelEvent('beforeRestored', $callback);
     }
 
     public static function afterRestored(callable $callback): void
