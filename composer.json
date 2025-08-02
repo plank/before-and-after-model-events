@@ -58,16 +58,6 @@
             "phpstan/extension-installer": true
         }
     },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Plank\\BeforeAndAfterModelEvents\\BeforeAndAfterModelEventsServiceProvider"
-            ],
-            "aliases": {
-                "BeforeAndAfterModelEvents": "Plank\\BeforeAndAfterModelEvents\\Facades\\BeforeAndAfterModelEvents"
-            }
-        }
-    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }
