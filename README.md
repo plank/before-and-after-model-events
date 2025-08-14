@@ -2,7 +2,7 @@
 
 <p align="center">
 <a href="https://packagist.org/packages/plank/before-and-after-model-events"><img src="https://img.shields.io/packagist/php-v/plank/before-and-after-model-events?color=%23fae370&label=php&logo=php&logoColor=%23fff" alt="PHP Version Support"></a>
-<a href="https://laravel.com/docs/11.x/releases#support-policy"><img src="https://img.shields.io/badge/laravel-10.x,%2011.x-%2343d399?color=%23f1ede9&logo=laravel&logoColor=%23ffffff" alt="PHP Version Support"></a>
+<a href="https://laravel.com/docs/12.x/releases#support-policy"><img src="https://img.shields.io/badge/laravel-10.x,%2011.x,%2012.x-%2343d399?color=%23f1ede9&logo=laravel&logoColor=%23ffffff" alt="PHP Version Support"></a>
 <a href="https://github.com/plank/before-and-after-model-events/actions?query=workflow%3Arun-tests"><img src="https://img.shields.io/github/actions/workflow/status/plank/before-and-after-model-events/run-tests.yml?branch=main&&color=%23bfc9bd&label=run-tests&logo=github&logoColor=%23fff" alt="GitHub Workflow Status"></a>
 </p>
 
