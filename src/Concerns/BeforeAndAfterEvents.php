@@ -21,8 +21,15 @@ trait BeforeAndAfterEvents
 
         // Generate before/after events for all, plus the base events
         $eventsToAdd = [];
+
+        // Get the events already registered on the model
+        $registered = $this->getObservableEvents();
+
         foreach ($events as $event) {
-            $eventsToAdd[] = $event; // The base event itself
+            if (!in_array($event, $registered)) {
+                $eventsToAdd[] = $event; // The base event itself
+            }
+
             $eventsToAdd[] = 'before'.ucfirst($event);
             $eventsToAdd[] = 'after'.ucfirst($event);
         }
