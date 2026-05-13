@@ -4,6 +4,7 @@ namespace Plank\BeforeAndAfterModelEvents\Tests\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Plank\BeforeAndAfterModelEvents\Concerns\BeforeAndAfterEvents;
+use Plank\BeforeAndAfterModelEvents\Tests\Events\ModelSaved;
 
 /**
  * @property string $name;
@@ -19,7 +20,7 @@ class ModelWithOwnEvents extends Model
     protected $fillable = ['name', 'email', 'status'];
 
     protected $dispatchesEvents = [
-        'saved' => \Plank\BeforeAndAfterModelEvents\Tests\Events\ModelSaved::class,
+        'saved' => ModelSaved::class,
     ];
 
     public function process()

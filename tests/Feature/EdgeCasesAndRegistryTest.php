@@ -81,12 +81,12 @@ it('allows multiple listeners for the same event', function () {
 
 it('handles exceptions in event listeners', function () {
     TestModel::beforeEvent('creating', function () {
-        throw new \Exception('Test exception');
+        throw new Exception('Test exception');
     });
 
     $model = new TestModel(['name' => 'Test', 'email' => 'test@example.com']);
 
-    expect(fn () => $model->save())->toThrow(\Exception::class, 'Test exception');
+    expect(fn () => $model->save())->toThrow(Exception::class, 'Test exception');
 });
 
 it('properly initializes observable events from dynamic registration', function () {
