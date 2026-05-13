@@ -26,7 +26,7 @@ trait BeforeAndAfterEvents
         $registered = $this->getObservableEvents();
 
         foreach ($events as $event) {
-            if (!in_array($event, $registered)) {
+            if (! in_array($event, $registered)) {
                 $eventsToAdd[] = $event; // The base event itself
             }
 
